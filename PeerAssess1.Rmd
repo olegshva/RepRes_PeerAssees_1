@@ -1,0 +1,156 @@
+---
+title: "Reproducible Research: Peer Assessment 1 "
+author: "Oleg Shvaikovsky"
+date: "14.02.2015"
+output: html_document
+---
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+This assignment will be described in multiple parts. I need to write a report that answers the questions detailed below.
+
+## About the data
+The data for this assignment was downloaded from the course web
+site:
+
+* Dataset: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) [52K]
+
+The variables included in this dataset are:
+
+* **steps**: Number of steps taking in a 5-minute interval (missing
+    values are coded as `NA`)
+
+* **date**: The date on which the measurement was taken in YYYY-MM-DD
+    format
+
+* **interval**: Identifier for the 5-minute interval in which
+    measurement was taken
+
+## Now we are loading the data
+
+Data was downloaded and unzipped in advance to corresponding folder
+
+```{r}
+setwd("/Users/olegshvaikovskypro/R-Coursera/RepRes_5/PeerAssessment_1/data")
+FitBitData <- read.csv("activity.csv")
+setwd("/Users/olegshvaikovskypro/R-Coursera/RepRes_5/PeerAssessment_1/PeerAssess_1")
+```
+
+
+## What is mean total number of steps taken per day?
+
+For this part of the assignment, I can ignore the missing values in the dataset.
+
+Tasks are:  
+
+* To calculate the total number of steps taken per day
+
+* To make a histogram of the total number of steps taken each day
+
+* Calculate and report the mean and median of the total number of steps taken per day
+
+Sum steps by day, create Histogram, and calculate mean and median.
+```{r} 
+StepsByDay <- aggregate(steps ~ date, FitBitData, sum)
+barplot(StepsByDay$steps, names.arg = StepsByDay$date, xlab = "date", ylab = "steps", col="green")
+FBmean <- mean(StepsByDay$steps)
+FBmedian <- median(StepsByDay$steps)
+```
+
+Mean = `r FBmean` and median = `r FBmedian`.
+
+
+## What is the average daily activity pattern?
+
+Here tasks are: 
+
+* To make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+* To find which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+
+```{r}
+StepsByInterval <- aggregate(steps ~ interval, FitBitData, mean)
+plot(StepsByInterval$interval,StepsByInterval$steps, type="l", xlab="Interval", ylab="Number of Steps",main="Average Number of Steps per Day by Interval")
+MaxSteps <- StepsByInterval[which.max(StepsByInterval$steps),1]
+```
+
+Answer to second question ("To find which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?") is `r MaxSteps`.
+
+
+## Imputing missing values
+
+Here tasks are: 
+
+* To calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+
+* To devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+* To create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+* To make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+Now, step by step: 
+
+```{r}
+SumOfMissing <- sum(is.na(FitBitData$steps))
+```
+
+The total number of **missing** values are `r SumOfMissing`
+
+As a strategy of filling I choose to replace missing values by **mean** values
+
+Now we are creating a new dataset that is equal to the original dataset but with the missing data filled in by **means**
+
+```{r}
+ReplaceNA <- numeric()
+for (i in 1:nrow(FitBitData)) {
+    t1 <- FitBitData[i, ]
+    if (is.na(t1$steps)) {
+#        steps <- subset(FBmean, interval == t1$interval)$steps
+        steps <- FBmean
+
+    } else {
+        steps <- t1$steps
+    }
+    ReplaceNA <- c(ReplaceNA, steps)
+}
+CompleteFitBitData <- FitBitData
+CompleteFitBitData$steps <- ReplaceNA
+```
+
+Now we are plotting new barpolt, where NA's are replaced by means. 
+
+```{r}
+CompleteStepsByDay <- aggregate(steps ~ date, CompleteFitBitData, sum)
+barplot(StepsByDay$steps, names.arg = StepsByDay$date, xlab = "date", ylab = "steps", col="blue")
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+We are creating a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+
+```{r}
+daytype <- function(date) {
+    if (weekdays(as.Date(date)) %in% c("Laupäev", "Pühapäev")) {
+        "weekend"
+    } else {
+        "weekday"
+    }
+}
+FitBitData$daytype <- as.factor(sapply(FitBitData$date, daytype))
+```
+
+And now the plots
+
+```{r}
+par(mfrow = c(2, 1))
+for (type in c("weekend", "weekday")) {
+      Charts <- aggregate(steps ~ interval, data = FitBitData, FUN = mean)
+    plot(Charts, type = "l", main = type)
+}
+```
+
+
+
